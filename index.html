@@ -60,7 +60,7 @@ body[data-theme="rain"] #fog-bg{
 body[data-theme="rain"] #fog-bg::after{
   background:radial-gradient(ellipse 90% 70% at 50% 20%,rgba(30,60,100,.25),transparent 50%),
     radial-gradient(ellipse 100% 100% at 50% 100%,rgba(0,0,0,.65),transparent 55%);opacity:1}
-body[data-theme="rain"] .fog-blob{opacity:.55;filter:blur(100px)}
+body[data-theme="rain"] .fog-blob{opacity:.55;filter:blur(80px)}
 body[data-theme="winter"] #fog-bg{
   background:linear-gradient(180deg,#0c1424 0%,#1a2840 38%,#0a1018 100%)}
 body[data-theme="winter"] #fog-bg::after{
@@ -82,7 +82,7 @@ body[data-theme="summer"] #sun-glow{opacity:1;animation:sunPulse 6s ease-in-out 
     linear-gradient(180deg,rgba(120,160,220,.08),transparent 40%);
   transition:opacity .05s ease-out}
 #storm-flash.on{opacity:1}
-.fog-blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.75;
+.fog-blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.75;
   animation:fogFloat ease-in-out infinite;transition:background 1.2s ease,opacity 1s,filter 1s}
 .fog-blob.b1{width:55vw;height:55vw;top:-15%;left:-10%;background:var(--fog-1);animation-duration:22s}
 .fog-blob.b2{width:45vw;height:45vw;top:20%;right:-12%;background:var(--fog-2);animation-duration:26s;animation-delay:-5s}
@@ -518,6 +518,36 @@ body[data-theme="summer"] #fog-vignette{
   .theme-menu{min-width:150px}
   .theme-btn{padding:8px 10px;font-size:.75rem}
 }
+
+/* —— Readability: normal, legible body text —— */
+.hero-sub,.section-hint,.mystery-hint,.meter-msg,.galaxy-text p,
+.reason-txt,.fun-sub,.spell-msg,.wheel-result,.letter-panel p,
+.polaroid-msg,.quiz-q,.intro-p,.secret-label{
+  font-family:'Outfit',sans-serif;font-style:normal;letter-spacing:.005em}
+.section-hint{color:rgba(255,246,250,.82);font-size:1rem;line-height:1.6}
+.section-hint b{font-style:normal}
+.hero-sub{color:rgba(255,246,250,.88);font-size:clamp(1.02rem,2.4vw,1.28rem);line-height:1.7}
+.mystery-hint{color:rgba(255,246,250,.72);font-size:.92rem}
+.letter-panel p{color:rgba(255,246,250,.92);line-height:1.9}
+.reason-txt{font-size:1.02rem;line-height:1.55}
+.meter-msg,.spell-msg,.wheel-result{color:rgba(255,246,250,.84)}
+.secret-label{font-size:1rem;line-height:1.55;font-weight:400}
+
+/* —— Graphics polish (GPU-cheap) —— */
+.secret-face,.secret-back,.meter-box,.fun-box,.quiz-box,.letter-panel{
+  box-shadow:0 18px 48px rgba(0,0,0,.42),0 0 0 1px rgba(255,255,255,.05),
+    inset 0 1px 0 rgba(255,255,255,.09)}
+.section-title,.hero-title{text-shadow:0 2px 30px rgba(255,45,120,.22)}
+#cursor{box-shadow:0 0 22px var(--hot),0 0 46px rgba(255,107,157,.6)}
+.polaroid{box-shadow:0 18px 52px rgba(0,0,0,.45)}
+
+/* —— Respect reduced-motion: calmer, lighter —— */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;
+    transition-duration:.15s!important}
+  .fog-blob{filter:blur(60px)}
+  #storm-flash,.intro-glow,.mystery-ring{animation:none!important}
+}
 </style>
 </head>
 <body class="custom-cursor" data-theme="dream">
@@ -789,6 +819,7 @@ body[data-theme="summer"] #fog-vignette{
 
 <script>
 (function(){
+  var reduceMotion=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   var totalClicks=0,maxJourney=120;
   var achievements={};
   function unlockAchieve(id,icon,label){
@@ -867,22 +898,27 @@ body[data-theme="summer"] #fog-vignette{
     if(t==='winter') return ['#ffffff','#e8f4ff','#b8d4ff','#d0e8ff','#fff'];
     return ['#ff6b9d','#ffd166','#c77dff','#7dd3fc','#fff'];
   }
+  var STAR_COUNT=reduceMotion?55:120;
   function initStars(){
     stars=[];
     var cols=starColors();
-    for(var i=0;i<180;i++) stars.push({x:Math.random(),y:Math.random(),r:Math.random()*1.2+.2,a:Math.random(),s:(Math.random()*.003+.0008)*(Math.random()>.5?1:-1),c:cols[i%cols.length]});
+    for(var i=0;i<STAR_COUNT;i++) stars.push({x:Math.random(),y:Math.random(),r:Math.random()*1.2+.2,a:Math.random(),s:(Math.random()*.003+.0008)*(Math.random()>.5?1:-1),c:cols[i%cols.length]});
   }
   initStars();
-  function drawStars(){
+  var starLast=0,starInterval=1000/32;
+  function drawStars(ts){
+    requestAnimationFrame(drawStars);
+    if(document.hidden) return;
+    ts=ts||0; if(ts-starLast<starInterval) return; starLast=ts;
     ctx.clearRect(0,0,sc.width,sc.height);
     stars.forEach(function(s){
       s.a+=s.s; if(s.a>1||s.a<0) s.s=-s.s;
       ctx.beginPath(); ctx.arc(s.x*sc.width,s.y*sc.height,s.r,0,Math.PI*2);
       ctx.fillStyle=s.c; ctx.globalAlpha=Math.abs(s.a)*.55; ctx.fill();
     });
-    ctx.globalAlpha=1; requestAnimationFrame(drawStars);
+    ctx.globalAlpha=1;
   }
-  drawStars();
+  requestAnimationFrame(drawStars);
 
   /* Weather: snow / rain / summer motes */
   var wc=document.getElementById('weather-canvas'),wctx=wc.getContext('2d');
@@ -893,33 +929,37 @@ body[data-theme="summer"] #fog-vignette{
   function spawnWeather(){
     var w=wc.width,h=wc.height;
     if(currentTheme==='winter'){
-      if(weatherParts.length<200) weatherParts.push({
+      if(weatherParts.length<140) weatherParts.push({
         type:'snow',x:Math.random()*w,y:-10,r:.8+Math.random()*4,
         vy:.5+Math.random()*2.2,vx:(Math.random()-.5)*1,sway:Math.random()*Math.PI*2
       });
     } else if(currentTheme==='rain'){
-      if(weatherParts.length<180) weatherParts.push({
+      if(weatherParts.length<130) weatherParts.push({
         type:'rain',x:Math.random()*w,y:-30,len:14+Math.random()*28,
         vy:14+Math.random()*12,vx:-3-Math.random()*3,thick:Math.random()>.65?1.4:.7
       });
-      if(Math.random()>.92 && weatherParts.length<200) weatherParts.push({
+      if(Math.random()>.92 && weatherParts.length<150) weatherParts.push({
         type:'rain',x:Math.random()*w,y:-10,len:6+Math.random()*10,
         vy:18+Math.random()*6,vx:-4,thick:.4
       });
     } else if(currentTheme==='summer'){
-      if(weatherParts.length<65) weatherParts.push({
+      if(weatherParts.length<45) weatherParts.push({
         type:'summer',x:Math.random()*w,y:h+10,r:2+Math.random()*6,
         vy:-(0.5+Math.random()*1.2),vx:(Math.random()-.5)*.6,a:Math.random(),pulse:Math.random()*Math.PI*2
       });
     } else {
-      if(weatherParts.length<30) weatherParts.push({
+      if(weatherParts.length<22) weatherParts.push({
         type:'mist',x:Math.random()*w,y:Math.random()*h,r:20+Math.random()*60,
         vy:(Math.random()-.5)*.15,vx:(Math.random()-.5)*.15,a:.08+Math.random()*.12
       });
     }
   }
 
-  function drawWeather(){
+  var weatherLast=0,weatherInterval=1000/34;
+  function drawWeather(ts){
+    requestAnimationFrame(drawWeather);
+    if(document.hidden) return;
+    ts=ts||0; if(ts-weatherLast<weatherInterval) return; weatherLast=ts;
     wctx.clearRect(0,0,wc.width,wc.height);
     spawnWeather();
     weatherParts=forEachSafe(weatherParts,function(p){
@@ -950,9 +990,8 @@ body[data-theme="summer"] #fog-vignette{
       }
       return p;
     });
-    requestAnimationFrame(drawWeather);
   }
-  drawWeather();
+  requestAnimationFrame(drawWeather);
 
   var themeToasts={dream:'Dream — soft romantic fog 💜',summer:'Summer — golden sunset glow ☀️',rain:'Rain — dark storm incoming ⛈️',winter:'Winter — snowfall mode ❄️'};
   var themeIcons={dream:'💜',summer:'☀️',rain:'🌧️',winter:'❄️'};
@@ -1163,8 +1202,17 @@ body[data-theme="summer"] #fog-vignette{
     var c=document.getElementById('galaxy-canvas'),g=c.getContext('2d'),box=document.getElementById('galaxyBox');
     c.width=box.offsetWidth; c.height=box.offsetHeight;
     var pts=[];
-    for(var i=0;i<280;i++) pts.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*2,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,a:Math.random(),as:(Math.random()-.5)*.02});
-    function draw(){
+    var GAL_COUNT=reduceMotion?90:170;
+    for(var i=0;i<GAL_COUNT;i++) pts.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*2,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,a:Math.random(),as:(Math.random()-.5)*.02});
+    var galVisible=true;
+    if('IntersectionObserver' in window){
+      new IntersectionObserver(function(en){ galVisible=en[0].isIntersecting; },{threshold:0}).observe(box);
+    }
+    var galLast=0,galInterval=1000/34;
+    function draw(ts){
+      requestAnimationFrame(draw);
+      if(document.hidden||!galVisible) return;
+      ts=ts||0; if(ts-galLast<galInterval) return; galLast=ts;
       g.fillStyle='rgba(15,6,16,0.15)'; g.fillRect(0,0,c.width,c.height);
       var pal=['hsl('+(gHue+330)+',90%,70%)','hsl('+(gHue+50)+',85%,65%)','hsl('+(gHue+180)+',70%,60%)','#fff'];
       pts.forEach(function(p,j){
@@ -1175,9 +1223,9 @@ body[data-theme="summer"] #fog-vignette{
         g.beginPath(); g.arc(p.x,p.y,p.r,0,Math.PI*2);
         g.fillStyle=pal[j%4]; g.globalAlpha=Math.max(.2,p.a); g.fill();
       });
-      g.globalAlpha=1; requestAnimationFrame(draw);
+      g.globalAlpha=1;
     }
-    draw();
+    requestAnimationFrame(draw);
     box.addEventListener('click',function(e){
       fx(e.clientX,e.clientY,false);
       gLevel=(gLevel+1)%gQuotes.length;
